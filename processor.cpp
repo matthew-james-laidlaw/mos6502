@@ -1,4 +1,17 @@
-#include "Processor.h"
+#include "processor.h"
+
+auto Processor::Load(std::vector<uint8_t> const& prog, Word addr) -> void
+{
+	m_memory.Load(prog, addr);
+}
+
+auto Processor::Run() -> void
+{
+	while (true)
+	{
+		Cycle();
+	}
+}
 
 auto Processor::Cycle() -> void
 {
@@ -406,7 +419,7 @@ auto Processor::BPL(Byte operand) -> void
 
 auto Processor::BRK() -> void
 {
-	throw std::runtime_error("not implemented");
+	throw std::runtime_error("not implemented: BRK");
 }
 
 auto Processor::BVC(Byte operand) -> void
@@ -441,17 +454,17 @@ auto Processor::CLV() -> void
 
 auto Processor::CMP(Byte operand) -> void
 {
-	throw std::runtime_error("not implemented");
+	throw std::runtime_error("not implemented: CMP");
 }
 
 auto Processor::CPX(Byte operand) -> void
 {
-	throw std::runtime_error("not implemented");
+	throw std::runtime_error("not implemented: CPX");
 }
 
 auto Processor::CPY(Byte operand) -> void
 {
-	throw std::runtime_error("not implemented");
+	throw std::runtime_error("not implemented: CPY");
 }
 
 auto Processor::DEC(Byte& operand) -> void
@@ -505,12 +518,12 @@ auto Processor::INY() -> void
 
 auto Processor::JMP(Word operand) -> void
 {
-	throw std::runtime_error("not implemented");
+	throw std::runtime_error("not implemented: JMP");
 }
 
 auto Processor::JSR(Word operand) -> void
 {
-	throw std::runtime_error("not implemented");
+	throw std::runtime_error("not implemented: JSR");
 }
 
 auto Processor::LDA(Byte operand) -> void
@@ -556,107 +569,107 @@ auto Processor::ORA(Byte operand) -> void
 
 auto Processor::PHA() -> void
 {
-	throw std::runtime_error("not implemented");
+	throw std::runtime_error("not implemented: PHA");
 }
 
 auto Processor::PHP() -> void
 {
-	throw std::runtime_error("not implemented");
+	throw std::runtime_error("not implemented: PHP");
 }
 
 auto Processor::PLA() -> void
 {
-	throw std::runtime_error("not implemented");
+	throw std::runtime_error("not implemented: PLA");
 }
 
 auto Processor::PLP() -> void
 {
-	throw std::runtime_error("not implemented");
+	throw std::runtime_error("not implemented: PLP");
 }
 
 auto Processor::ROL(Byte& operand) -> void
 {
-	throw std::runtime_error("not implemented");
+	throw std::runtime_error("not implemented: ROL");
 }
 
 auto Processor::ROR(Byte& operand) -> void
 {
-	throw std::runtime_error("not implemented");
+	throw std::runtime_error("not implemented: ROR");
 }
 
 auto Processor::RTI() -> void
 {
-	throw std::runtime_error("not implemented");
+	throw std::runtime_error("not implemented: RTI");
 }
 
 auto Processor::RTS() -> void
 {
-	throw std::runtime_error("not implemented");
+	throw std::runtime_error("not implemented: RTS");
 }
 
 auto Processor::SBC(Byte operand) -> void
 {
-	throw std::runtime_error("not implemented");
+	throw std::runtime_error("not implemented: SBC");
 }
 
 auto Processor::SEC() -> void
 {
-	throw std::runtime_error("not implemented");
+	throw std::runtime_error("not implemented: SEC");
 }
 
 auto Processor::SED() -> void
 {
-	throw std::runtime_error("not implemented");
+	throw std::runtime_error("not implemented: SED");
 }
 
 auto Processor::SEI() -> void
 {
-	throw std::runtime_error("not implemented");
+	throw std::runtime_error("not implemented; SEI");
 }
 
 auto Processor::STA(Byte& operand) -> void
 {
-	throw std::runtime_error("not implemented");
+	throw std::runtime_error("not implemented: STA");
 }
 
 auto Processor::STX(Byte& operand) -> void
 {
-	throw std::runtime_error("not implemented");
+	throw std::runtime_error("not implemented: STX");
 }
 
 auto Processor::STY(Byte& operand) -> void
 {
-	throw std::runtime_error("not implemented");
+	throw std::runtime_error("not implemented: STY");
 }
 
 auto Processor::TAX() -> void
 {
-	throw std::runtime_error("not implemented");
+	throw std::runtime_error("not implemented: TAX");
 }
 
 auto Processor::TAY() -> void
 {
-	throw std::runtime_error("not implemented");
+	throw std::runtime_error("not implemented: TAY");
 }
 
 auto Processor::TSX() -> void
 {
-	throw std::runtime_error("not implemented");
+	throw std::runtime_error("not implemented: TSX");
 }
 
 auto Processor::TXA() -> void
 {
-	throw std::runtime_error("not implemented");
+	throw std::runtime_error("not implemented: TXA");
 }
 
 auto Processor::TXS() -> void
 {
-	throw std::runtime_error("not implemented");
+	throw std::runtime_error("not implemented: TXS");
 }
 
 auto Processor::TYA() -> void
 {
-	throw std::runtime_error("not implemented");
+	throw std::runtime_error("not implemented: TYA");
 }
 
 /*    Status Flags    *
@@ -677,22 +690,22 @@ auto Processor::SetZ(Byte value) -> void
 
 auto Processor::FetchByte() -> Byte&
 {
-	return mMemory.readByte(PC++);
+	return m_memory.ReadByte(PC++);
 }
 
 auto Processor::FetchWord() -> Word&
 {
-	return mMemory.readWord(PC++);
+	return m_memory.ReadWord(PC++);
 }
 
 auto Processor::ReadByte(Word address) -> Byte&
 {
-	return mMemory.readByte(address);
+	return m_memory.ReadByte(address);
 }
 
 auto Processor::ReadWord(Word address) -> Word&
 {
-	return mMemory.readWord(address);
+	return m_memory.ReadWord(address);
 }
 
 /*    Other    *

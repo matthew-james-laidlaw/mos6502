@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Memory.h"
+#include "memory.h"
 
 #include <stdexcept>
 
@@ -8,16 +8,18 @@ class Processor
 {
 private:
 
-	Memory mMemory;
+	Memory m_memory;
 
 	/*    Register File    *
 	 * ------------------- */
 
-	Word PC;  // program counter
-	Byte A;   // accumulator
-	Byte X;   // x index
-	Byte Y;   // y index
+	Word PC = 0x400;  // program counter
+	
 	Byte SP;  // stack pointer
+
+	Byte A;  // accumulator
+	Byte X;  // x index
+	Byte Y;  // y index
 
 	/*    Status Flags    *
 	 * ------------------ */
@@ -32,9 +34,12 @@ private:
 
 public:
 
-	auto Cycle() -> void;
+	auto Load(std::vector<uint8_t> const& prog, Word addr) -> void;
+	auto Run() -> void;
 
 private:
+
+	auto Cycle() -> void;
 
 	/*    Addressing Modes    *
 	 * ---------------------- */
