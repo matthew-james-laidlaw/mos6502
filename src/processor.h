@@ -8,38 +8,44 @@ class Processor
 {
 private:
 
+	static const Word PC_START = 0x400;  // the initial value of the program counter
+	static const Byte SP_START = 0xFF;   // the top of the stack which grows downwards
+	static const Word BRK_VEC = 0xFFFE;  // the location jumped to during a break
+
 	Memory m_memory;
 
 	/*    Register File    *
 	 * ------------------- */
 
-	Word PC = 0x400;  // program counter
-	
-	Byte SP;  // stack pointer
-
-	Byte A;  // accumulator
-	Byte X;  // x index
-	Byte Y;  // y index
+	Word PC = PC_START;  // program counter
+	Byte SP = SP_START;  // stack pointer
+	Byte A = 0;          // accumulator
+	Byte X = 0;          // x index
+	Byte Y = 0;          // y index
 
 	/*    Status Flags    *
 	 * ------------------ */
 
-	bool N;  // negative
-	bool V;  // overflow
-	bool B;  // break
-	bool D;  // decimal
-	bool I;  // interrupt
-	bool Z;  // zero
-	bool C;  // carry
+	bool N = false;  // negative
+	bool V = false;  // overflow
+	bool B = false;  // break
+	bool D = false;  // decimal
+	bool I = false;  // interrupt
+	bool Z = false;  // zero
+	bool C = false;  // carry
 
 public:
 
+	/* Load a binary into memory at the given adderss. */
 	auto Load(std::vector<uint8_t> const& prog, Word addr) -> void;
+
+	/* Begin executing a loaded binary with the program counter starting at 0x0400. */
 	auto Run() -> void;
 
 private:
 
-	auto Cycle() -> void;
+	auto Cycle() -> bool;
+	auto Execute(Byte opcode) -> void;
 
 	/*    Addressing Modes    *
 	 * ---------------------- */
@@ -133,18 +139,39 @@ private:
 	auto FetchByte() -> Byte&;
 
 	/* Fetch two bytes of memory at the program counter, increment the program counter by two. */
-	auto FetchWord() -> Word&;
+	auto FetchWord() -> Word;
 
 	/* Fetch one byte of memory from the specified address, do not increment the program counter. */
 	auto ReadByte(Word address) -> Byte&;
 
 	/* Fetch two bytes of memory from the specified address, do not increment the program counter. */
-	auto ReadWord(Word address) -> Word&;
+	auto ReadWord(Word address) -> Word;
 
 	/*    Other    * 
 	 * ----------- */
 
 	/* If the predicate matches, add the offset to the program counter. Otherwise, do nothing. */
 	auto BranchRelative(bool predicate, Byte offset) -> void;
+
+	/* Push the given value onto the stack, decrement the stack pointer. */
+	auto PushStack(Byte value) -> void;
+
+	/* Pop a value from the stack, increment the stack pointer. */
+	auto PopStack() -> Byte;
+	
+	/* Get a single-byte representation of the status flags. */
+	auto GetStatusRegister() -> Byte;
+
+	/* Create a single-byte representation of the status flags. */
+	auto SetStatusRegister(Byte flags) -> void;
+
+	/* Jump to the given interrupt vector, specify wether this is a software or hardware interrupt. */
+	auto Interrupt(Word vector, bool software) -> void;
+
+	/* Sum accumulator with operand in binary mode. */
+	auto AddBinary(Byte operand) -> void;
+
+	/* Sum accumulator with operand in decimal mode. */
+	auto AddDecimal(Byte operand) -> void;
 
 };

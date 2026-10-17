@@ -15,7 +15,7 @@ auto Memory::ReadByte(Word address) -> Byte&
 
 auto Memory::ReadWord(Word address) -> Word&
 {
-    if ((size_t)address + sizeof(Word) > k_limit_limit)
+    if ((size_t)address + sizeof(Word) >= k_mem_limit)
     {
         throw std::runtime_error(std::format("out-of-bounds read of {} byte(s) in range [0x{:08X}, 0x{:08X}], the valid range is [0x0000, 0xFFFF]", sizeof(Word), address, (size_t)address + sizeof(Word)));
     }
@@ -29,7 +29,7 @@ auto Memory::WriteByte(Word address, Byte value) -> void
 
 auto Memory::WriteWord(Word address, Word value) -> void
 {
-    if ((size_t)address + sizeof(Word) > k_limit_limit)
+    if ((size_t)address + sizeof(Word) >= k_mem_limit)
     {
         throw std::runtime_error(std::format("out-of-bounds write of {} byte(s) in range [0x{:08X}, 0x{:08X}], the valid range is [0x0000, 0xFFFF]", sizeof(Word), address, (size_t)address + sizeof(Word)));
     }

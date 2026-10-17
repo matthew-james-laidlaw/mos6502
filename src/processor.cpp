@@ -1,5 +1,7 @@
 #include "processor.h"
 
+#include <iostream>
+
 auto Processor::Load(std::vector<uint8_t> const& prog, Word addr) -> void
 {
 	m_memory.Load(prog, addr);
@@ -7,16 +9,38 @@ auto Processor::Load(std::vector<uint8_t> const& prog, Word addr) -> void
 
 auto Processor::Run() -> void
 {
-	while (true)
-	{
-		Cycle();
-	}
+	while (Cycle()) {}
 }
 
-auto Processor::Cycle() -> void
+auto Processor::Cycle() -> bool
 {
+	auto orig_pc = PC;
 	auto opcode = FetchByte();
 
+	try
+	{
+		Execute(opcode);
+		if (PC == 0x3469)
+		{
+			std::cout << "Success!" << std::endl;
+			return false;
+		}
+	}
+	catch (std::exception const& e)
+	{
+		throw std::runtime_error(std::format("{} (opcode '0x{:02X}' at PC '0x{:04X}')", e.what(), opcode, PC - 1));
+	}
+
+	if (PC == orig_pc)
+	{
+		throw std::runtime_error("PC didn't change after executing instruction");
+	}
+
+	return true;
+}
+
+auto Processor::Execute(Byte opcode) -> void
+{
 	switch (opcode)
 	{
 		// ADC
@@ -283,7 +307,7 @@ auto Processor::Cycle() -> void
 		case 0x98: { TYA(); return; }
 
 		// Unknown
-		default: throw std::runtime_error(std::format("invalid opcode {}", opcode));
+		default: throw std::runtime_error(std::format("invalid opcode", opcode));
 	}
 }
 
@@ -302,12 +326,12 @@ auto Processor::GetZpg() -> Byte&
 
 auto Processor::GetZpx() -> Byte&
 {
-	return ReadByte(FetchByte() + X);
+	return ReadByte(static_cast<Byte>(FetchByte() + X));
 }
 
 auto Processor::GetZpy() -> Byte&
 {
-	return ReadByte(FetchByte() + Y);
+	return ReadByte(static_cast<Byte>(FetchByte() + Y));
 }
 
 auto Processor::GetAbs() -> Byte&
@@ -327,12 +351,12 @@ auto Processor::GetAby() -> Byte&
 
 auto Processor::GetInx() -> Byte&
 {
-	return ReadByte(ReadWord(FetchByte() + X));
+	return ReadByte(ReadWord(static_cast<Byte>(FetchByte() + X)));
 }
 
 auto Processor::GetIny() -> Byte&
 {
-	return ReadByte(ReadWord(FetchByte()) + Y);
+	return ReadByte(static_cast<Word>(ReadWord(FetchByte()) + Y));
 }
 
 auto Processor::GetAbsAddr() -> Word
@@ -342,7 +366,10 @@ auto Processor::GetAbsAddr() -> Word
 
 auto Processor::GetIndAddr() -> Word
 {
-	return ReadWord(FetchByte());
+	// NMOS bug: JMP ($xxFF) takes its high byte from $xx00
+	const Word ptr = FetchWord();
+	const Word hi_addr = static_cast<Word>((ptr & 0xFF00) | ((ptr + 1) & 0x00FF));
+	return static_cast<Word>((ReadByte(hi_addr) << 8) | ReadByte(ptr));
 }
 
 /*    Instructions    *
@@ -350,15 +377,14 @@ auto Processor::GetIndAddr() -> Word
 
 auto Processor::ADC(Byte operand) -> void
 {
-	const auto original = A;
-	const auto sum = static_cast<Word>(original) + operand + C;
-	A = static_cast<Byte>(sum);
-
-	C = sum > 0xFF;
-	V = (~(original ^ operand) & (original ^ A) & 0x80) != 0;
-
-	SetN(A);
-	SetZ(A);
+	if (D)
+	{
+		AddDecimal(operand);
+	}
+	else
+	{
+		AddBinary(operand);
+	}
 }
 
 auto Processor::AND(Byte operand) -> void
@@ -376,8 +402,8 @@ auto Processor::ASL(Byte& operand) -> void
 
 	C = shifted > 0xFF;
 
-	SetN(A);
-	SetZ(A);
+	SetN(operand);
+	SetZ(operand);
 }
 
 auto Processor::BCC(Byte operand) -> void
@@ -419,7 +445,8 @@ auto Processor::BPL(Byte operand) -> void
 
 auto Processor::BRK() -> void
 {
-	throw std::runtime_error("not implemented: BRK");
+	++PC;
+	Interrupt(BRK_VEC, true);
 }
 
 auto Processor::BVC(Byte operand) -> void
@@ -454,17 +481,26 @@ auto Processor::CLV() -> void
 
 auto Processor::CMP(Byte operand) -> void
 {
-	throw std::runtime_error("not implemented: CMP");
+	Byte result = A - operand;
+	SetN(result);
+	SetZ(result);
+	C = A >= operand;
 }
 
 auto Processor::CPX(Byte operand) -> void
 {
-	throw std::runtime_error("not implemented: CPX");
+	Byte result = X - operand;
+	SetN(result);
+	SetZ(result);
+	C = X >= operand;
 }
 
 auto Processor::CPY(Byte operand) -> void
 {
-	throw std::runtime_error("not implemented: CPY");
+	Byte result = Y - operand;
+	SetN(result);
+	SetZ(result);
+	C = Y >= operand;
 }
 
 auto Processor::DEC(Byte& operand) -> void
@@ -484,8 +520,8 @@ auto Processor::DEX() -> void
 auto Processor::DEY() -> void
 {
 	--Y;
-	SetN(X);
-	SetZ(X);
+	SetN(Y);
+	SetZ(Y);
 }
 
 auto Processor::EOR(Byte operand) -> void
@@ -518,12 +554,15 @@ auto Processor::INY() -> void
 
 auto Processor::JMP(Word operand) -> void
 {
-	throw std::runtime_error("not implemented: JMP");
+	PC = operand;
 }
 
 auto Processor::JSR(Word operand) -> void
 {
-	throw std::runtime_error("not implemented: JSR");
+	const Word ret = PC - 1;
+	PushStack(static_cast<Byte>(ret >> 8));
+	PushStack(static_cast<Byte>(ret & 0xFF));
+	PC = operand;
 }
 
 auto Processor::LDA(Byte operand) -> void
@@ -542,9 +581,9 @@ auto Processor::LDX(Byte operand) -> void
 
 auto Processor::LDY(Byte operand) -> void
 {
-	X = operand;
-	SetN(X);
-	SetZ(X);
+	Y = operand;
+	SetN(Y);
+	SetZ(Y);
 }
 
 auto Processor::LSR(Byte& operand) -> void
@@ -569,107 +608,146 @@ auto Processor::ORA(Byte operand) -> void
 
 auto Processor::PHA() -> void
 {
-	throw std::runtime_error("not implemented: PHA");
+	PushStack(A);
 }
 
 auto Processor::PHP() -> void
 {
-	throw std::runtime_error("not implemented: PHP");
+	PushStack(GetStatusRegister());
 }
 
 auto Processor::PLA() -> void
 {
-	throw std::runtime_error("not implemented: PLA");
+	A = PopStack();
+	SetN(A);
+	SetZ(A);
 }
 
 auto Processor::PLP() -> void
 {
-	throw std::runtime_error("not implemented: PLP");
+	SetStatusRegister(PopStack());
 }
 
 auto Processor::ROL(Byte& operand) -> void
 {
-	throw std::runtime_error("not implemented: ROL");
+	const bool carry_out = (operand & 0x80) != 0;
+	operand = static_cast<Byte>((operand << 1) | (C ? 0x01 : 0x00));
+	C = carry_out;
+	SetN(operand);
+	SetZ(operand);
 }
 
 auto Processor::ROR(Byte& operand) -> void
 {
-	throw std::runtime_error("not implemented: ROR");
+	const bool carry_out = (operand & 0x01) != 0;
+	operand = static_cast<Byte>((operand >> 1) | (C ? 0x80 : 0x00));
+	C = carry_out;
+	SetN(operand);
+	SetZ(operand);
 }
 
 auto Processor::RTI() -> void
 {
-	throw std::runtime_error("not implemented: RTI");
+	SetStatusRegister(PopStack());
+	const Byte lo = PopStack();
+	const Byte hi = PopStack();
+	PC = static_cast<Word>((hi << 8) | lo);
 }
 
 auto Processor::RTS() -> void
 {
-	throw std::runtime_error("not implemented: RTS");
+	const Byte lo = PopStack();
+	const Byte hi = PopStack();
+	PC = static_cast<Word>((hi << 8) | lo) + 1;
 }
 
 auto Processor::SBC(Byte operand) -> void
 {
-	throw std::runtime_error("not implemented: SBC");
+	if (!D)
+	{
+		AddBinary(static_cast<Byte>(~operand));
+		return;
+	}
+
+	const Byte original = A;
+	const int borrow = C ? 0 : 1;
+	AddBinary(static_cast<Byte>(~operand));
+
+	int lo = (original & 0x0F) - (operand & 0x0F) - borrow;
+	int hi = (original >> 4) - (operand >> 4);
+	if (lo & 0x10) { lo -= 6; --hi; }
+	if (hi & 0x10) { hi -= 6; }
+	A = static_cast<Byte>((hi << 4) | (lo & 0x0F));
 }
 
 auto Processor::SEC() -> void
 {
-	throw std::runtime_error("not implemented: SEC");
+	C = 1;
 }
 
 auto Processor::SED() -> void
 {
-	throw std::runtime_error("not implemented: SED");
+	D = 1;
 }
 
 auto Processor::SEI() -> void
 {
-	throw std::runtime_error("not implemented; SEI");
+	I = 1;
 }
 
 auto Processor::STA(Byte& operand) -> void
 {
-	throw std::runtime_error("not implemented: STA");
+	operand = A;
 }
 
 auto Processor::STX(Byte& operand) -> void
 {
-	throw std::runtime_error("not implemented: STX");
+	operand = X;
 }
 
 auto Processor::STY(Byte& operand) -> void
 {
-	throw std::runtime_error("not implemented: STY");
+	operand = Y;
 }
 
 auto Processor::TAX() -> void
 {
-	throw std::runtime_error("not implemented: TAX");
+	X = A;
+	SetN(X);
+	SetZ(X);
 }
 
 auto Processor::TAY() -> void
 {
-	throw std::runtime_error("not implemented: TAY");
+	Y = A;
+	SetN(Y);
+	SetZ(Y);
 }
 
 auto Processor::TSX() -> void
 {
-	throw std::runtime_error("not implemented: TSX");
+	X = SP;
+	SetN(X);
+	SetZ(X);
 }
 
 auto Processor::TXA() -> void
 {
-	throw std::runtime_error("not implemented: TXA");
+	A = X;
+	SetN(A);
+	SetZ(A);
 }
 
 auto Processor::TXS() -> void
 {
-	throw std::runtime_error("not implemented: TXS");
+	SP = X;
 }
 
 auto Processor::TYA() -> void
 {
-	throw std::runtime_error("not implemented: TYA");
+	A = Y;
+	SetN(A);
+	SetZ(A);
 }
 
 /*    Status Flags    *
@@ -693,9 +771,12 @@ auto Processor::FetchByte() -> Byte&
 	return m_memory.ReadByte(PC++);
 }
 
-auto Processor::FetchWord() -> Word&
+auto Processor::FetchWord() -> Word
 {
-	return m_memory.ReadWord(PC++);
+	auto lo = m_memory.ReadByte(PC++);
+	auto hi = m_memory.ReadByte(PC++);
+	auto result = (static_cast<Word>(hi) << 8 | static_cast<Word>(lo));
+	return result;
 }
 
 auto Processor::ReadByte(Word address) -> Byte&
@@ -703,9 +784,11 @@ auto Processor::ReadByte(Word address) -> Byte&
 	return m_memory.ReadByte(address);
 }
 
-auto Processor::ReadWord(Word address) -> Word&
+auto Processor::ReadWord(Word address) -> Word
 {
-	return m_memory.ReadWord(address);
+	const Byte lo = ReadByte(address);
+	const Byte hi = ReadByte(static_cast<Byte>(address + 1));
+	return static_cast<Word>((hi << 8) | lo);
 }
 
 /*    Other    *
@@ -715,6 +798,92 @@ auto Processor::BranchRelative(bool predicate, Byte offset) -> void
 {
 	if (predicate)
 	{
-		PC += static_cast<SByte>(offset);
+        const auto displacement = static_cast<SByte>(offset);
+        PC = static_cast<Word>(PC + displacement);
 	}
+}
+
+auto Processor::PushStack(Byte value) -> void
+{
+	ReadByte(0x0100 + SP) = value;
+	--SP;
+}
+
+auto Processor::PopStack() -> Byte
+{
+	++SP;
+	return ReadByte(0x0100 + SP);
+}
+
+auto Processor::GetStatusRegister() -> Byte
+{
+	Byte flags = 0;
+	flags |= static_cast<Byte>(N) << 7;
+	flags |= static_cast<Byte>(V) << 6;
+	flags |= 1 << 5;
+	flags |= 1 << 4;
+	flags |= static_cast<Byte>(D) << 3;
+	flags |= static_cast<Byte>(I) << 2;
+	flags |= static_cast<Byte>(Z) << 1;
+	flags |= static_cast<Byte>(C);
+	return flags;
+}
+
+auto Processor::SetStatusRegister(Byte flags) -> void
+{
+	N = ((flags >> 7) & 1) != 0;
+	V = ((flags >> 6) & 1) != 0;
+	D = ((flags >> 3) & 1) != 0;
+	I = ((flags >> 2) & 1) != 0;
+	Z = ((flags >> 1) & 1) != 0;
+	C = (flags & 1) != 0;
+}
+
+auto Processor::Interrupt(Word vector, bool software) -> void
+{
+	PushStack(static_cast<Byte>(PC >> 8));
+	PushStack(static_cast<Byte>(PC & 0xFF));
+
+	Byte flags = GetStatusRegister();
+	if (!software)
+	{
+		flags &= static_cast<Byte>(~0x10);
+	}
+	PushStack(flags);
+
+	I = true;
+	PC = static_cast<Word>(ReadByte(vector) | (ReadByte(vector + 1) << 8));
+}
+
+auto Processor::AddBinary(Byte operand) -> void
+{
+	const Byte original = A;
+	const Word sum = static_cast<Word>(original + operand + (C ? 1 : 0));
+	A = static_cast<Byte>(sum);
+
+	C = sum > 0xFF;
+	V = (~(original ^ operand) & (original ^ A) & 0x80) != 0;
+
+	SetN(A);
+	SetZ(A);
+}
+
+auto Processor::AddDecimal(Byte operand) -> void
+{
+	const Byte original = A;
+	const int carry_in = C ? 1 : 0;
+
+	int lo = (original & 0x0F) + (operand & 0x0F) + carry_in;
+	if (lo > 0x09) { lo += 0x06; }
+
+	int hi = (original >> 4) + (operand >> 4) + (lo > 0x0F ? 1 : 0);
+
+	Z = static_cast<Byte>(original + operand + carry_in) == 0;
+	N = (hi & 0x08) != 0;
+	V = (~(original ^ operand) & (original ^ (hi << 4)) & 0x80) != 0;
+
+	if (hi > 0x09) { hi += 0x06; }
+	C = hi > 0x0F;
+
+	A = static_cast<Byte>((hi << 4) | (lo & 0x0F));
 }
