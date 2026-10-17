@@ -366,7 +366,7 @@ auto Processor::GetAbsAddr() -> Word
 
 auto Processor::GetIndAddr() -> Word
 {
-	// NMOS bug: JMP ($xxFF) takes its high byte from $xx00
+	// NMOS bug: JMP at a page boundary e.g., 0x__FF takes its high byte from 0x__00
 	const Word ptr = FetchWord();
 	const Word hi_addr = static_cast<Word>((ptr & 0xFF00) | ((ptr + 1) & 0x00FF));
 	return static_cast<Word>((ReadByte(hi_addr) << 8) | ReadByte(ptr));
@@ -775,7 +775,7 @@ auto Processor::FetchWord() -> Word
 {
 	auto lo = m_memory.ReadByte(PC++);
 	auto hi = m_memory.ReadByte(PC++);
-	auto result = (static_cast<Word>(hi) << 8 | static_cast<Word>(lo));
+	auto result = static_cast<Word>(static_cast<Word>(hi) << 8 | static_cast<Word>(lo));
 	return result;
 }
 

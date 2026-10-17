@@ -6,16 +6,15 @@
 #include <iostream>
 #include <vector>
 
+#ifndef KLAUS2M5_ROM_PATH
+	#error "Requires KLAUS2M5_ROM_PATH to be defined as a path to the test ROM"
+#endif
+
 namespace fs = std::filesystem;
 
-auto Main(int argc, char** argv) -> void
+auto Main() -> void
 {
-	if (argc != 2)
-	{
-		throw std::runtime_error("usage: ./emulator <path-to-rom>");
-	}
-
-	auto test_file = fs::path(argv[1]);
+	auto test_file = fs::path(KLAUS2M5_ROM_PATH);
 	if (!fs::exists(test_file))
 	{
 		throw std::runtime_error(std::format("file does not exist: {}", test_file.string()));
@@ -34,11 +33,11 @@ auto Main(int argc, char** argv) -> void
 	proc.Run();
 }
 
-auto main(int argc, char** argv) -> int
+auto main() -> int
 {
 	try
 	{
-		Main(argc, argv);
+		Main();
 		return 0;
 	}
 	catch (std::exception const& e)
