@@ -22,7 +22,7 @@ auto Processor::Cycle() -> bool
 		Execute(opcode);
 		if (PC == 0x3469)
 		{
-			std::cout << "Success!" << std::endl;
+			std::cout << "Test Passed!" << std::endl;
 			return false;
 		}
 	}
@@ -33,7 +33,7 @@ auto Processor::Cycle() -> bool
 
 	if (PC == orig_pc)
 	{
-		throw std::runtime_error("PC didn't change after executing instruction");
+		throw std::runtime_error("Test Failed.");
 	}
 
 	return true;

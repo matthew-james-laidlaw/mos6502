@@ -21,10 +21,15 @@ target_include_directories(emulator PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 #    Klaus2M5 Test Suite
 # -------------------------
 
-add_executable(klaus2m5 tests/klaus2m5/main.cpp)
-target_link_libraries(klaus2m5 PRIVATE emulator)
+add_executable(functional_test tests/functional_test/main.cpp)
+target_link_libraries(functional_test PRIVATE emulator)
 
 # Locate the test ROM and bake it into the test executable
 include(cmake/klaus2m5.cmake)
 resolve_klaus2m5_rom_path()
 target_compile_definitions(klaus2m5 PRIVATE KLAUS2M5_ROM_PATH=\"${KLAUS2M5_ROM_PATH}\")
+
+#    SingleStepTests Suite
+# ---------------------------
+
+
