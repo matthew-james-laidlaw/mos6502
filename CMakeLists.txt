@@ -43,3 +43,8 @@ target_compile_definitions(functional_test PRIVATE KLAUS2M5_ROM_PATH=\"${KLAUS2M
 
 add_executable(single_step_tests tests/single_step_tests/main.cpp)
 target_link_libraries(single_step_tests PRIVATE nlohmann_json::nlohmann_json)
+
+# Locate the test JSON files and bake them into the test executable
+include(cmake/single_step_tests.cmake)
+resolve_single_step_tests_dir()
+target_compile_definitions(single_step_tests PRIVATE SINGLE_STEP_TESTS_DIR=\"${SINGLE_STEP_TESTS_DIR}\")

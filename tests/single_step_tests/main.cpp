@@ -1,16 +1,22 @@
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
 #include <cstdint>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
 #include <string>
-#include <tuple>
 #include <vector>
+
+#ifndef SINGLE_STEP_TESTS_DIR
+	#error "Requires SINGLE_STEP_TESTS_DIR to be defined as the test data directory"
+#endif
 
 namespace
 {
 	using Json = nlohmann::json;
+	namespace fs = std::filesystem;
 
 	struct MemoryByte
 	{
@@ -105,38 +111,45 @@ namespace
 	}
 }
 
-auto main(int argc, char** argv) -> int
+auto main() -> int
 {
-	if (argc != 2)
-	{
-		std::cerr << "usage: single_step_test_decoder <path-to-opcode-json>\n";
-		return 1;
-	}
-
-	auto const path = std::string(argv[1]);
-	auto input = std::ifstream(path);
-	if (!input)
-	{
-		std::cerr << "failed to open JSON file: " << path << '\n';
-		return 1;
-	}
-
 	try
 	{
-		auto json = Json::parse(input);
-		auto const tests = json.get<std::vector<TestCase>>();
-		std::cout << "Decoded " << tests.size() << " test cases from " << path << '\n';
-		if (!tests.empty())
+		auto const test_directory = fs::path(SINGLE_STEP_TESTS_DIR);
+		auto files = std::vector<fs::path>();
+		for (auto const& entry : fs::directory_iterator(test_directory))
 		{
-			auto const& first = tests.front();
-			std::cout << "First case: " << first.name
-				<< ", PC " << first.initial.pc << " -> " << first.final.pc
-				<< ", " << first.cycles.size() << " bus cycles\n";
+			if (entry.is_regular_file() && entry.path().extension() == ".json")
+			{
+				files.push_back(entry.path());
+			}
 		}
+		std::sort(files.begin(), files.end());
+		if (files.empty())
+		{
+			throw std::runtime_error("no JSON test files found in " + test_directory.string());
+		}
+
+		auto total_tests = std::size_t{ 0 };
+		for (auto const& path : files)
+		{
+			auto input = std::ifstream(path);
+			if (!input)
+			{
+				throw std::runtime_error("failed to open JSON file: " + path.string());
+			}
+
+			auto json = Json::parse(input);
+			auto const tests = json.get<std::vector<TestCase>>();
+			total_tests += tests.size();
+			std::cout << "Decoded " << tests.size() << " test cases from " << path.filename().string() << '\n';
+		}
+
+		std::cout << "Decoded " << total_tests << " test cases across " << files.size() << " files\n";
 	}
 	catch (std::exception const& error)
 	{
-		std::cerr << "failed to decode " << path << ": " << error.what() << '\n';
+		std::cerr << "failed to decode SingleStepTests: " << error.what() << '\n';
 		return 1;
 	}
 

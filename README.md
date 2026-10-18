@@ -11,11 +11,11 @@ cmake --build build --config Release
 
 # on multi-config generators (e.g., Visual Studio)
 .\build\bin\Release\functional_test.exe
-.\build\bin\Release\single_step_test_decoder.exe tests\single_step_tests\v1\00.json
+.\build\bin\Release\single_step_tests.exe
 
 # on single-config generators (e.g., Unix Makefiles)
 ./build/bin/functional_test
-./build/bin/single_step_test_decoder tests/single_step_tests/v1/00.json
+./build/bin/single_step_tests
 ```
 
 ## Testing Methodology
@@ -25,3 +25,5 @@ There are two test suites used for testing the emulator, chosen for their compre
 The [functional test](https://github.com/klaus2m5/6502_65c02_functional_tests) from github user Klaus Dormann [(Klaus2m5)](https://github.com/klaus2m5) is loaded into memory and executed. The test succeeds if address `0x3469` is reached, printing "Test Passed!". Otherwise the test will fail with message "Test Failed".
 
 The [single step tests](https://github.com/SingleStepTests/65x02) provide an exhaustive list of instructions with expected pre and post-conditions to assert against.
+
+The `single_step_tests` executable decodes all opcode JSON files from the directory baked in at CMake configure time. CMake searches `tests/single_step_tests/v1` by default; set `SINGLE_STEP_TESTS_DIR` to use another dataset directory.
