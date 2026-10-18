@@ -3,11 +3,11 @@ function(resolve_klaus2m5_rom_path)
     if(NOT KLAUS2M5_ROM)
         find_file(KLAUS2M5_ROM_DEFAULT
             NAMES 6502_functional_test.bin
-            PATHS "${PROJECT_SOURCE_DIR}/tests/klaus2m5"
+            PATHS "${PROJECT_SOURCE_DIR}/tests/functional_test"
             NO_DEFAULT_PATH
         )
         if(NOT KLAUS2M5_ROM_DEFAULT)
-            message(FATAL_ERROR "Could not find 6502_functional_test.bin in tests/klaus2m5")
+            message(FATAL_ERROR "Could not find 6502_functional_test.bin in tests/functional_test")
         endif()
         set(KLAUS2M5_ROM "${KLAUS2M5_ROM_DEFAULT}")
     endif()

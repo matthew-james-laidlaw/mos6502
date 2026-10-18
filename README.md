@@ -11,11 +11,11 @@ cmake --build build --config Release
 
 # on multi-config generators (e.g., Visual Studio)
 .\build\bin\Release\functional_test.exe
-.\build\bin\Release\single_step_tests.exe
+.\build\bin\Release\single_step_test_decoder.exe tests\single_step_tests\v1\00.json
 
 # on single-config generators (e.g., Unix Makefiles)
 ./build/bin/functional_test
-./build/bin/single_step_tests
+./build/bin/single_step_test_decoder tests/single_step_tests/v1/00.json
 ```
 
 ## Testing Methodology
